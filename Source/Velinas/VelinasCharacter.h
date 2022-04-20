@@ -23,6 +23,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animations)
 	UAnimMontage* RollAnimation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animations)
+	UAnimMontage* RollAirAnimation;
+
 	void PostInitializeComponents() override;
 
 	/** Returns TopDownCameraComponent subobject **/

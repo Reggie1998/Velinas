@@ -34,36 +34,48 @@ void AVelinasPlayerController::PlayerTick(float DeltaTime)
 			GetCharacter()->GetCharacterMovement()->FallingLateralFriction = GetCharacter()->GetCharacterMovement()->GroundFriction; //PERHAPS A BETTER WAY??!
 		}
 	}
-	
-	if(bInputPressed)
+
+	if(bInputPressed && !bFinishedLastDestination && !GetCharacter()->GetCharacterMovement()->IsFalling())
 	{
 		FollowTime += DeltaTime;
 
 		// Look for the touch location
 		FVector HitLocation = FVector::ZeroVector;
 		FHitResult Hit;
-		if(bIsTouch)
-		{
-			GetHitResultUnderFinger(ETouchIndex::Touch1, ECC_Visibility, true, Hit);
-		}
-		else
-		{
-			GetHitResultUnderCursor(ECC_Visibility, true, Hit);
-		}
+		
+		GetHitResultUnderCursor(ECC_Visibility, true, Hit);
 		HitLocation = Hit.Location;
+		LastDestinationClicked = Hit.Location;
 
 		// Direct the Pawn towards that location
 		APawn* const MyPawn = GetPawn();
+		//UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitLocation);
+		if (MyPawn->GetActorLocation() == LastDestinationClicked)
+		{
+			bFinishedLastDestination = true;
+		}
+		// Direct the Pawn towards that location
 		if(MyPawn)
 		{
 			FVector WorldDirection = (HitLocation - MyPawn->GetActorLocation()).GetSafeNormal();
 			MyPawn->AddMovementInput(WorldDirection, 1.f, false);
 		}
 	}
+	/*if (LastDestinationClicked != GetCharacter()->GetActorLocation())
+	{
+		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, LastDestinationClicked);
+	}
+	else if ( LastDestinationClicked == GetCharacter()->GetActorLocation())
+	{
+		bFinishedLastDestination = true;
+
+	}
+	
+	
 	else
 	{
 		FollowTime = 0.f;
-	}
+	}*/
 }
 
 void AVelinasPlayerController::SetupInputComponent()
@@ -73,11 +85,11 @@ void AVelinasPlayerController::SetupInputComponent()
 
 	FTimerHandle DodgeTimer;
 
-	this->GetCharacter()->JumpMaxCount = 2.0f;
+	//this->GetCharacter()->JumpMaxCount = 2.0f;
 	InAnimation = false;
 	DodgeKeyPressed = false;
-	InputComponent->BindAction("SetDestination", IE_Pressed, this, &AVelinasPlayerController::OnSetDestinationPressed);
-	InputComponent->BindAction("SetDestination", IE_Released, this, &AVelinasPlayerController::OnSetDestinationReleased);
+	InputComponent->BindAction("MouseRightPressed", IE_Pressed, this, &AVelinasPlayerController::OnSetDestinationPressed);
+	InputComponent->BindAction("MouseRightPressed", IE_Released, this, &AVelinasPlayerController::OnSetDestinationReleased);
 
 	InputComponent->BindAxis("MoveUp", this, &AVelinasPlayerController::OnMoveUp);
 	InputComponent->BindAxis("MoveRight", this, &AVelinasPlayerController::OnMoveRight);
@@ -96,7 +108,6 @@ void AVelinasPlayerController::SetupInputComponent()
 
 void AVelinasPlayerController::OnMovement(float AxisValue, EAxis::Type Axis)
 {
-	//NOTE THIS RUNS EVERYTICK
 	APawn* const PlayerPawn = GetPawn();
 	// Find out which way is forward
 	const FRotator Rotation = this->GetControlRotation();
@@ -147,48 +158,43 @@ void AVelinasPlayerController::OnJumpReleased()
 void AVelinasPlayerController::OnDodgePressed()
 {
 	UCharacterMovementComponent* CharacterMovement = this->GetCharacter()->GetCharacterMovement();
-	//CharacterMovement->RotationRate = FRotator(0.0f, 0.0f, 200000.0f);
-	if (DodgePressedTime + DodgeCooldown <= GetWorld()->GetTimeSeconds())
+	//Check for dodge cooldow
+	if (DodgePressedTime + DodgeCooldown <= GetWorld()->GetTimeSeconds()) 
 	{
 		FVector ForwardDir = CharacterMovement->GetLastInputVector();
 		ACharacter* Char = this->GetCharacter();
 		FRotator Rotation;
+		//Check for last input, if it doesn't exist roll wherever the character is currently facing
 		if (ForwardDir == FVector(0.00f, 0.00f, 00.0f))
 		{
 			ForwardDir = Char->GetActorRotation().Vector();
 			Rotation = Char->GetActorRotation();
 			ForwardDir.Normalize();
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("No last input"));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("X %f"), ForwardDir.X));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Y %f"), ForwardDir.Y));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("X %f"), ForwardDir.Z));
-			
 		}
 		else
 		{
 			Rotation = ForwardDir.Rotation();
 			ForwardDir.Normalize();
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("No last input"));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("X %f"), ForwardDir.X));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Y %f"), ForwardDir.Y));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("X %f"), ForwardDir.Z));
-
 		}
 		CharacterMovement->RotationRate = FRotator(0.0f, 0.0f, 0.0f);
-		//if (Char->Ju)
+		//After roll force character to face direction of roll
 		Char->SetActorRotation(Rotation);
-		Char->PlayAnimMontage(Cast<AVelinasCharacter>(Char)->RollAnimation);
-		CharacterMovement->AddImpulse(ForwardDir * 5000.0f, true);
+		CharacterMovement->IsFalling() ? Char->PlayAnimMontage(Cast<AVelinasCharacter>(Char)->RollAirAnimation) : Char->PlayAnimMontage(Cast<AVelinasCharacter>(Char)->RollAnimation);
+		//Launch character forward(would prefer different way to control timing more
+		//Different Rolls if it is mid air TODO: Look into different roll in air more
+		CharacterMovement->IsFalling() ? CharacterMovement->AddImpulse(ForwardDir * 3000.0f, true) : CharacterMovement->AddImpulse(ForwardDir * 5000.0f, true) ;
 		DodgeKeyPressed = true;
 		CharacterMovement->MaxWalkSpeed = 0.0f;
 		DodgePressedTime = GetWorld()->GetTimeSeconds();
+		//Set timer until the next roll finishes
 		GetWorldTimerManager().SetTimer(DodgeDuration, this, &AVelinasPlayerController::TimerElapsed, 0.4f, false);
 	}
 }
+
+//After finishing roll reset settings to normal
 void AVelinasPlayerController::TimerElapsed()
 {
 	DodgeKeyPressed = false;
-	//this->GetCharacter()->GetCharacterMovement()->MaxAcceleration = 1000;
 	this->GetCharacter()->GetCharacterMovement()->RotationRate = FRotator(0.0f, 740.0f, 0.0f);
 	this->GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 
@@ -196,12 +202,7 @@ void AVelinasPlayerController::TimerElapsed()
 
 void AVelinasPlayerController::OnDodgeReleased()
 {
-	DodgeKeyPressed = false;
-	/*UCharacterMovementComponent* CharacterMovement = this->GetCharacter()->GetCharacterMovement();
-	CharacterMovement->MaxAcceleration = 1000.0f;
-	CharacterMovement->RotationRate = FRotator(CharacterMovement->RotationRate.Pitch,640.0f, CharacterMovement->RotationRate.Roll);
-	CharacterMovement->MaxWalkSpeed = 600.0f;
-	DodgeKeyPressed = false;*/
+	//NOOP
 }
 
 void AVelinasPlayerController::OnEquip()
@@ -228,13 +229,10 @@ void AVelinasPlayerController::OnEquip()
 	}
 }
 
-
 void AVelinasPlayerController::OnSetDestinationPressed()
 {
-	// We flag that the input is being pressed
 	bInputPressed = true;
-	// Just in case the character was moving because of a previous short press we stop it
-	StopMovement();
+	bFinishedLastDestination = false;
 }
 
 void AVelinasPlayerController::OnSetDestinationReleased()
@@ -243,7 +241,7 @@ void AVelinasPlayerController::OnSetDestinationReleased()
 	bInputPressed = false;
 
 	// If it was a short press
-	if(FollowTime <= ShortPressThreshold)
+	/*if(FollowTime <= ShortPressThreshold)
 	{
 		// We look for the location in the world where the player has pressed the input
 		FVector HitLocation = FVector::ZeroVector;
@@ -254,7 +252,7 @@ void AVelinasPlayerController::OnSetDestinationReleased()
 		// We move there and spawn some particles
 		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, HitLocation);
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXCursor, HitLocation, FRotator::ZeroRotator, FVector(1.f, 1.f, 1.f), true, true, ENCPoolMethod::None, true);
-	}
+	}*/
 }
 
 void AVelinasPlayerController::OnTouchPressed(const ETouchIndex::Type FingerIndex, const FVector Location)

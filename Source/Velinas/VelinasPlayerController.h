@@ -43,6 +43,8 @@ protected:
 	/** Input handlers for SetDestination action. */
 	void OnSetDestinationPressed();
 	void OnSetDestinationReleased();
+	void OnSetDestinationHold();
+
 	void OnTouchPressed(const ETouchIndex::Type FingerIndex, const FVector Location);
 	void OnTouchReleased(const ETouchIndex::Type FingerIndex, const FVector Location);
 
@@ -67,6 +69,8 @@ protected:
 
 private:
 	bool bInputPressed; // Input is bring pressed
+	bool bFinishedLastDestination;
+	FVector LastDestinationClicked;
 	bool bIsTouch; // Is it a touch device
 	float FollowTime; // For how long it has been pressed
 };
