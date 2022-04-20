@@ -61,21 +61,20 @@ void AVelinasPlayerController::PlayerTick(float DeltaTime)
 			MyPawn->AddMovementInput(WorldDirection, 1.f, false);
 		}
 	}
-	/*if (LastDestinationClicked != GetCharacter()->GetActorLocation())
+	/*
+	if (LastDestinationClicked != GetCharacter()->GetActorLocation())
 	{
 		UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, LastDestinationClicked);
 	}
 	else if ( LastDestinationClicked == GetCharacter()->GetActorLocation())
 	{
 		bFinishedLastDestination = true;
-
 	}
-	
-	
 	else
 	{
 		FollowTime = 0.f;
-	}*/
+	}
+	*/
 }
 
 void AVelinasPlayerController::SetupInputComponent()
