@@ -3,18 +3,15 @@
 
 #include "EnemyCharacter.h"
 #include "Perception/PawnSensingComponent.h"
+#include "Perception//AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 
 // Sets default values
 AEnemyCharacter::AEnemyCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	//PawnSensing = CreateDefaultSubobject<UPawnSensingComponent>(TEXT("PawnSensing2"));
-	//PawnSensing->SensingInterval = 0.25f;
-	//PawnSensing->bOnlySensePlayers = false;
-	//PawnSensing->SetPeripheralVisionAngle(35.0f);
-	//PawnSensing->OnSeePawn.AddDynamic(this, &AEnemyCharacter::SeePawn);
-
+	SetUpStimulus();
 }
 
 // Called when the game starts or when spawned
@@ -26,8 +23,15 @@ void AEnemyCharacter::BeginPlay()
 // Called every frame
 void AEnemyCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
 
+	Super::Tick(DeltaTime);
+}
+
+void AEnemyCharacter::SetUpStimulus()
+{
+	Stimulus = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("Stimulus"));
+	Stimulus->RegisterForSense(TSubclassOf<UAISense_Sight>());
+	Stimulus->RegisterWithPerceptionSystem();
 }
 
 
