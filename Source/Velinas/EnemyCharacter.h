@@ -32,8 +32,17 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(EditAnywhere, BluePrintReadOnly, Category = "AI")
+	class UBehaviorTree* TreeAsset;
+
+private:
+	class UAIPerceptionStimuliSourceComponent* Stimulus;
+
+	void SetUpStimulus();
 };
